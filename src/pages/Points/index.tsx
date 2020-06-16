@@ -7,23 +7,29 @@ import {
   ScrollView,
   Image,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location";
 import { SvgUri } from "react-native-svg";
 import api from "../../services/conections";
 
 interface itens {
   id: number;
   titulo: String;
-  image_url: String;
+  image_url: string;
 }
 
 const Points = () => {
   const navigation = useNavigation();
   const [itens, setItens] = useState<itens[]>([]);
   const [selectedItens, setSelectedItens] = useState<number[]>([]);
+  const [initialPosition, setInitialPosition] = useState<[number, number]>([
+    0,
+    0,
+  ]);
 
   function goToBack() {
     navigation.goBack();
@@ -42,6 +48,22 @@ const Points = () => {
     }
   }
 
+  async function loadPosition() {
+    const { status } = await Location.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Voce nao deu permiçao para acesso a sua localizaçao");
+      return;
+    }
+    try {
+      const location = await Location.getCurrentPositionAsync();
+      const { latitude, longitude } = location.coords;
+      setInitialPosition([latitude, longitude]);
+      console.log(latitude, longitude);
+    } catch (erro) {
+      console.log(" ---------- ERRO Location: ", erro);
+    }
+  }
+
   function handleSelectItem(id: number) {
     const alreadySelected = selectedItens.findIndex((item) => item === id);
     if (alreadySelected >= 0) {
@@ -53,6 +75,7 @@ const Points = () => {
   }
 
   useEffect(() => {
+    loadPosition();
     loadItens();
   }, []);
 
@@ -67,35 +90,37 @@ const Points = () => {
           Encontre no mapa um ponto de coleta.
         </Text>
         <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: 0.0799251,
-              longitude: -51.0853921,
-              latitudeDelta: 0.029,
-              longitudeDelta: 0.029,
-            }}
-          >
-            <Marker
-              onPress={navigateToDetail}
-              style={styles.mapMarker}
-              coordinate={{
-                latitude: 0.082478,
-                longitude: -51.088586,
+          {initialPosition[0] !== 0 && (
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: initialPosition[0],
+                longitude: initialPosition[1],
+                latitudeDelta: 0.029,
+                longitudeDelta: 0.029,
               }}
             >
-              <View style={styles.mapMarkerContainer}>
-                <Image
-                  style={styles.mapMarkerImage}
-                  source={{
-                    uri:
-                      "https://s.marketwatch.com/public/resources/images/MW-ER558_consum_ZH_20160714154123.jpg",
-                  }}
-                />
-                <Text style={styles.mapMarkerTitle}>Mercado</Text>
-              </View>
-            </Marker>
-          </MapView>
+              <Marker
+                onPress={navigateToDetail}
+                style={styles.mapMarker}
+                coordinate={{
+                  latitude: 0.082478,
+                  longitude: -51.088586,
+                }}
+              >
+                <View style={styles.mapMarkerContainer}>
+                  <Image
+                    style={styles.mapMarkerImage}
+                    source={{
+                      uri:
+                        "https://s.marketwatch.com/public/resources/images/MW-ER558_consum_ZH_20160714154123.jpg",
+                    }}
+                  />
+                  <Text style={styles.mapMarkerTitle}>Mercado</Text>
+                </View>
+              </Marker>
+            </MapView>
+          )}
         </View>
       </View>
 
