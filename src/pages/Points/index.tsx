@@ -16,15 +16,23 @@ import * as Location from "expo-location";
 import { SvgUri } from "react-native-svg";
 import api from "../../services/conections";
 
-interface itens {
+interface Item {
   id: number;
   titulo: String;
   image_url: string;
 }
+interface Point {
+  id: number;
+  image: string;
+  name: string;
+  lattitude: number;
+  longitude: number;
+}
 
 const Points = () => {
   const navigation = useNavigation();
-  const [itens, setItens] = useState<itens[]>([]);
+  const [itens, setItens] = useState<Item[]>([]);
+  const [points, setPoints] = useState<Point[]>([]);
   const [selectedItens, setSelectedItens] = useState<number[]>([]);
   const [initialPosition, setInitialPosition] = useState<[number, number]>([
     0,
@@ -74,10 +82,23 @@ const Points = () => {
     }
   }
 
+  async function loadPoints() {
+    const points = await api.get("/points", {
+      params: {
+        city: "Macapa",
+        uf: "AP",
+        itens: selectedItens,
+      },
+    });
+    console.log(points.data);
+    setPoints(points.data);
+  }
+
   useEffect(() => {
     loadPosition();
     loadItens();
-  }, []);
+    loadPoints();
+  }, [selectedItens]);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -100,25 +121,28 @@ const Points = () => {
                 longitudeDelta: 0.029,
               }}
             >
-              <Marker
-                onPress={navigateToDetail}
-                style={styles.mapMarker}
-                coordinate={{
-                  latitude: 0.082478,
-                  longitude: -51.088586,
-                }}
-              >
-                <View style={styles.mapMarkerContainer}>
-                  <Image
-                    style={styles.mapMarkerImage}
-                    source={{
-                      uri:
-                        "https://s.marketwatch.com/public/resources/images/MW-ER558_consum_ZH_20160714154123.jpg",
-                    }}
-                  />
-                  <Text style={styles.mapMarkerTitle}>Mercado</Text>
-                </View>
-              </Marker>
+              {points.map((point) => (
+                <Marker
+                  key={String(point.id)}
+                  onPress={navigateToDetail}
+                  style={styles.mapMarker}
+                  coordinate={{
+                    latitude: point.lattitude,
+                    longitude: point.longitude,
+                  }}
+                >
+                  <View style={styles.mapMarkerContainer}>
+                    <Image
+                      style={styles.mapMarkerImage}
+                      source={{
+                        uri:
+                          "https://s.marketwatch.com/public/resources/images/MW-ER558_consum_ZH_20160714154123.jpg",
+                      }}
+                    />
+                    <Text style={styles.mapMarkerTitle}>{point.name}</Text>
+                  </View>
+                </Marker>
+              ))}
             </MapView>
           )}
         </View>
